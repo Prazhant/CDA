@@ -1,0 +1,115 @@
+\documentclass[twoside,10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts,amsthm,fullpage}
+\usepackage{algorithm}
+\usepackage{float}
+
+\usepackage{graphicx}
+\usepackage{algpseudocode}
+
+\algnewcommand\algorithmicforeach{\textbf{for each:}}
+\algnewcommand\ForEach{\item[ \algorithmicforeach]}
+
+
+\title{ISYE6740-HW1}
+\author{Prashant Kubsad, pkubsad@gatech.edu}
+\date{January 2021}
+
+\begin{document}
+
+\maketitle
+
+\section{$K$-means clustering [60 points]}
+
+Given $m$ data points $\text x^i$, $i=1,\dots, m$, $K$-means clustering algorithm groups them into $k$ clusters by minimizing the distortion function over $\{ r^{ij}, \mu^j \}$
+\begin{equation}
+J =\sum_{i=1}^m\sum_{j=1}^k r^{ij} \|\text x^i-\mu^j\|^2,
+\label{J_def}
+\end{equation}
+where $r^{ij}=1$ if $\text x^i$ belongs to the $j$-th cluster and $r^{ij}=0$ otherwise.
+
+\begin{enumerate}
+
+\item (10 points) Derive mathematically that using the squared Euclidean distance $\|\text x^i-\mu^j\|^2$ as the dissimilarity function, the centroid that minimizes the distortion function $J$  for given assignments $r^{ij}$ are given by
+   $$\mu^j=\frac{\sum_i r^{ij} \text x^i}{\sum_i r^{ij}}.$$
+   That is, $\mu^j$ is the center of $j$-th cluster.  \\
+   Hint: You may start by taking the partial derivative of $J$ with respect to $\mu^j$, with $r^{ij}$ fixed.\newline\newline
+\textbf{Answer:}  The centroid that minimizes the distortion function J is the maximization step of the EM algorithim of K-means clustering. As mentioned in the hint, to determine the minimization of distortion function, we can do a partial derivative of function J with respect to \mu^j$. 
+$$\frac{\partial J}{\partial \mu^j}= 0. \Rightarrow \frac{\partial \left(\sum_{i=1}^m\sum_{j=1}^k r^{ij} \|\text x^i-\mu^j\|^2\right)}{\partial \mu^j}= 0.  $$
+$$\frac{\partial J}{\partial \mu^j} = 2*\sum_{i=1}^m r^{ij} \left( x^i -\mu^j\right) =0$$
+$$ \sum_{i=1}^m r^{ij}x^i-\mu^j\sum_{i=1}^mr^{ij} = 0$$
+\[
+ \boxed{\mu^j=\frac{\sum_{i=1}^m r^{ij}x^i}{\sum_{i=1}^mr^{ij}}}
+\]
+\newline
+
+\item (10 points) Derive mathematically what should be the assignment variables $r^{ij}$ be to minimize the distortion function $J$, when the centroids $\mu^j$ are fixed.\newline\newline
+\textbf{Answer:}  This is the Expectation part of the EM algorithm of K-means clustering. A given data point can be assigned to only one cluster(centroid). If the the centroids are fixed, the incoming datapoint will be assigned to the centroid that it is closest to. That implies, the centroid which will have minimum cost function for that data point.$r^{ij}$ is binary field with value equal to 1 for the centroid it is assigned to and 0 for every other centroid.
+
+$$ r^{ij} = \Bigl\{\begin{align*} 1 \;\; \text if j= argmin^j \|x^i-\mu^j \|^2 \\ 
+0 \;\; otherwise
+\end{align*}\Bigl\}
+$$
+
+Example: If there are 3 centroids $\mu^1,\mu^2,\mu^3$, and a new data-point $x^1$ is to be clustered to one of these centroids,$x^1$ will be assigned to the centroid it is closest to. In other words, the centroid which will result in least cost function, \|$x^i-\mu^j$\|^2_2. If the distance (cost function) of $x^1$ with centroids is as below:
+$$\|x^1-\mu^1\|^2_2 = 4$$
+$$\|x^1-\mu^2\|^2_2 = 9$$
+$$\|x^1-\mu^3\|^2_2 = 16$$
+
+Then,
+$\mu^1$ is the centroid with least distance and hence $x^1$ will be assigned to $\mu^1$, hence $r^{11}$=1 and $r^{12}$=0, $r^{13}$=0
+\newline
+\item (10 points) Write down a pseudocode for $K$-means algorithm here, based on your derived results.\newline\newline
+\textbf{Answer:} \newline 
+The approach K means follows is 2 step process similar to a Expectation-Maximization model [EM]. In the 'Expectation' step, we assign every data point to a nearest cluster. In the 'Maximization' step, we determine new centroid for a given cluster. This process is repeated until the centroids are not changing. At this point, the model has converged to an optimal point beyond which there are no gains.
+\newline\newline
+\textbf{algorithm:} K-means clustering \textbf{is} \newline
+\textbf{input:} \begin{flushleft}  
+                && X = \{$x^1,x^2,x^3,\dots,x^m$\} \text{ - Data points that are to be clustered} \\
+                && k = Number of clusters.\\
+                \end{flushleft}
+\textbf{output:} \begin{flushleft}  C = $\{\mu^1,\mu^2,\mu^3,\dots,\mu^j\}$\text{ - Centroids of clusters}\\
+                 $\pi = \pi(j)$ | j $\epsilon 1,2,3,\dots,k$  \text{- set of clusters containing datapoints in that cluster}\end{flushleft}
+                 
+    \begin{algorithm}[H]
+    \State Initialize j cluster centers randomly
+        \State C[j] \gets $\{\mu^1,\mu^2,\mu^3,...,\mu^j\}$
+        \State $isConverged \gets false$
+        \newline
+        \newline
+        \While {!$(isConverged)$}
+            \State $C_{previous} \gets C $        //placeholder to be used later to compare with new set of centroids
+            \newline
+            \ForAll {($x^i$ in X) , ($\mu^j$ in C)}
+            \State assign $x^i$ to nearest cluster $\pi(j)$ determined by $argmin^j \|x^i - \mu^j\|^2$
+            \State $\pi[j]$ \gets $x^i$
+            \EndFor
+            \newline
+            
+            \ForAll {$\pi^j$ in $\pi$}
+            \State determine new center of cluster 
+            \State $\mu^j \gets $ average( x present in the $j^{th}$ cluster ) 
+            \State C[j] \gets $\mu^j$
+            \EndFor
+            \newline
+            \If {C == $C_{previous}$}
+                \State $isConverged \gets true $
+            \EndIf
+        \EndWhile
+    \end{algorithm}
+\newline
+
+\item[4.] (10 points) Explain why $K$-means algorithm converges to a local optimum in finite steps. 
+\newline\newline
+\textbf{Answer:} The K-Means clustering is a kind of heuristic algorithm, that will give us a very good result faster. This result might not be the best result, but, it will be closer to the best result. The objective function for K-Means clustering:
+$$\min_{c,\pi} \frac{1}{m}\sum^m_{i=1}\|x^i-c^{\pi(i)}\|^2$$ 
+$$ c = set of cluster centers,\\ m = number of data points, \pi(i) = cluster containing x^i$$
+This function is non-polynomial hard,that is, if we plot the value of the objective function, we end up with a shape like below. The overall optimal point of the system is the global optimum point as marked. There will be valleys which will not be as small as global minimum, but they are very small compared to their neighbouring points. These points are called local minimums.Because of the non-convexity of the objective function, we might not be able to find global minimum. Based on the different start points, we might arrive at different local minimums. Given all these conditions, we try to solve to local minimums in K means clustering instead of global minimums. 
+
+
+
+When Solving for this local minimums, the value of objective function does not oscillate. It will be monotonically decreasing. The 2 steps of K-means clustering try to reduce the the value of objective function. Each iteration is done only if there is a reduction in the value of the objective function. If there is a increase in the value of objective function, we have found our local minimum and we stop the iteration. The objective function is sum of squares function and hence it cannot be negative. So the smallest possible value of the objective function can be 0. That means, as we are iterating the steps of K-means, the algorithm is converging towards a zero. The worst case scenario for this convergence is $K^m$ steps. This number can be large but is still finite. Based on this information, we can conclude that the K - means algorithm converges to a local optimum in finite steps.
+
+
+\end{enumerate} 
+\end{document}
